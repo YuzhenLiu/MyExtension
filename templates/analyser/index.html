@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html>
+    <head>
+        <title>Cookies Analyser</title>
+        <script src="{% static "js/jquery-3.6.0.js" %}" crossorigin="anonymous"></script>
+        <script src="{% static "js/analyser-jquery.js" %}" crossorigin="anonymous"></script>
+    </head>
+
+    <body>
+        <div>
+            <h1>This is the cookies list:</h1>
+        </div>
+        <label id="cookiesList">
+            {{ cookies }}
+        </label>
+    </body>
+</html>

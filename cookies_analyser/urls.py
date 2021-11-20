@@ -20,6 +20,6 @@ from analyser import views
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('home/', include('analyser.urls')),
+    path('analyser/', include('analyser.urls')),
     path('admin/', admin.site.urls)
 ]
