@@ -3,8 +3,9 @@ import json
 from django.http import HttpResponse
 from django.shortcuts import render
 
-import ml
-from analyser.models import CookiesList
+import classifier
+import populate_script
+from analyser.models import CookiesList, Temp
 
 
 def index(request):
@@ -16,15 +17,19 @@ def index(request):
 
 
 def upload(request):
-    test_owner = 'test'
+    test_owner = 'tom'
+    CookiesList.objects.filter(owner=test_owner).delete()
     obj = CookiesList.objects.create()
     obj.owner = test_owner
     obj.cookies = json.loads(request.body.decode("utf-8"))
     obj.save()
 
-    ml.populate(test_owner)
+    populate_script.populate(test_owner)
+    classifier.classify()
 
-    return HttpResponse("succeed!")
+    malicious_cookies = Temp.objects.filter(isMalicious=1).count()
+
+    return HttpResponse(malicious_cookies)
 
 
 def get_cookies_json(request):

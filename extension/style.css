@@ -1,5 +1,6 @@
 body {
     width: 260px;
+    height: 430px;
     text-align: center;
 }
 
@@ -13,7 +14,62 @@ h1 {
 
 .buttons {
     text-align: center;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.panel {
+    height: 116px;
     margin: 10px;
+}
+
+#result {
+    font-size: 30px;
+    text-align: center;
+    margin: 5px;
+    font-style: italic;
+    font-weight: bold;
+}
+
+#domain {
+    font-size: 16px;
+    text-align: center;
+    margin: 5px;
+}
+
+#thirdPartyCookies {
+    font-size: 16px;
+    text-align: center;
+    color: #FF6C00;
+}
+
+#cookiesFound {
+    font-size: 16px;
+    text-align: center;
+    color: #4CAF50;
+}
+
+#maliciousCookies {
+    font-size: 16px;
+    text-align: center;
+    color: #DC0000;
+}
+
+#activateButton {
+    background-color: #4CAF50;
+    color: #FFFFFF;
+    border: none;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 18px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    margin: 6px;
+    display: inline-block;
+    width: 180px;
+    -webkit-transition-duration: 0.4s;
+    transition-duration: 0.4s;
 }
 
 button {
@@ -41,3 +97,4 @@ button:hover {
 button:active{
     background: #d3d3d3;
 }
+

@@ -1,49 +1,191 @@
 const activateButton = document.getElementById("activateButton");
 const getCookiesButton = document.getElementById("getCookiesButton");
+const reportButton = document.getElementById("ReportButton");
 const prompt = document.getElementById("prompt");
-const port = chrome.runtime.connect({ name:"connection"});
+const domainLabel = document.getElementById("domain");
+const resultLabel = document.getElementById("result");
+const cookiesFoundLabel =  document.getElementById("cookiesFound");
+const thirdPartyCookiesLabel =  document.getElementById("thirdPartyCookies");
+const maliciousCookiesLabel = document.getElementById("maliciousCookies");
+const port = await chrome.runtime.connect({ name:"connection"});
 let count = 0;
+let isRunning;
+
+init();
 
 activateButton.addEventListener("click", function() {
-    count = count + 1;
+    if (isRunning) {
+        chrome.storage.sync.set({isActivated: false});
+        isRunning = false;
+        setButton("#4CAF50", "Activate");
+        count = count + 1;
+    } else {
+        chrome.storage.sync.set({isActivated: true});
+        isRunning = true;
+        setButton("#DC0000", "Deactivate");
+        count = count - 1;
+    }
+    init();
     setPrompt(count);
 })
 
 getCookiesButton.addEventListener("click", async function() {
-    const cookies = await getCookies();
-    port.postMessage(cookies);
-    console.log("Cookies sent.")
+    if (isRunning) {
+        const cookies = await getCookies();
+        port.postMessage({sender: "popup", content: cookies});
+        console.log("Cookies sent.");
+    } else {
+        setPrompt("Not activated!")
+    }
 })
 
+reportButton.addEventListener("click", async function() {
+    if (isRunning) {
+        setPrompt("ok");
+    } else {
+        setPrompt("Not activated!");
+    }
+})
+
+port.onMessage.addListener(function(msg) {
+    if (msg.sender == "background") {
+        if (msg.content == 0) {
+            resultLabel.style.color = "#4CAF50";
+            resultLabel.textContent = "Safe";
+        } else {
+            resultLabel.style.color = "#DC0000";
+            resultLabel.textContent = "Unsafe";
+        }
+        maliciousCookiesLabel.textContent = "Malicious Cookies: " + msg.content;
+        console.log("Popup: Message received.");
+    }
+})
+
+function getSiteResources() {
+    return performance.getEntriesByType("resource").map(e => e.name);
+}
+
 async function getCookies() {
-    let cookiesFound = 0;
     let cookies = null;
     try {
-        cookies = await chrome.cookies.getAll({});
-        cookiesFound = cookies.length;
+        if (arguments[0]) {
+            let url = arguments[0];
+            cookies = await chrome.cookies.getAll({ "url": url });
+        } else {
+            cookies = await chrome.cookies.getAll({});
+            let cookies_found = cookies.length;
+            setPrompt(cookies_found + " cookies found.");
+        }
     } catch (error) {
         setPrompt("An unexpected error occurred!");
         console.log(error.message);
         return `Unexpected error: ${error.message}`;
     }
-    setPrompt(cookiesFound + " cookies found.");
     return cookies;
 }
 
 function setPrompt(content) {
     prompt.textContent = content;
     prompt.hidden = false;
+    window.setTimeout(initPrompt, 2000);
 }
 
 function initPrompt() {
     prompt.hidden = true;
-    prompt.
     prompt.textContent = "";
 }
 
-port.onMessage.addListener(function(msg) {
-    console.log("message received: " + msg);
-})
+async function getCurrentUrl() {
+    console.log("getting domain...");
+    let [tab] =await chrome.tabs.query({active:true, currentWindow:true});
+    let url = null;
+    if (tab?.url) {
+        try {
+            url = new URL(tab.url);
+            console.log("Current tab's ID: " + tab.id);
+        } catch {
+            console.error("Failed to get domain!");
+        }
+    }
+    return url;
+}
 
+function setButton(color, value) {
+    activateButton.style.setProperty("background-color", color);
+    activateButton.textContent = value;
+}
 
+async function init() {
+    await chrome.storage.sync.get("isActivated", async ({ isActivated }) => {
+        if (isActivated == true) {
+            isRunning = true;
+            setButton("#DC0000", "Deactivate");
+        } else {
+            isRunning = false;
+            setButton("#4CAF50", "Activate");
+        }
+        resetPanel();
+        getSiteCookies();
+    });
+}
 
+async function resetPanel() {
+    if (!isRunning) {
+        resultLabel.style.color = "#000000";
+        resultLabel.textContent = "----";
+        domainLabel.textContent = "--";
+        cookiesFoundLabel.textContent = "--";
+        thirdPartyCookiesLabel.textContent = "--";
+        maliciousCookiesLabel.textContent = "--";
+    }
+}
+
+async function getSiteCookies() {
+    if (isRunning) {
+        let [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+        let cookies = new Array();
+        let uniqueCookies = new Array();
+        let thirdPartiesCookiesNum = 0;
+
+        await chrome.scripting.executeScript({
+            target: {tabId: tab.id},
+            function: getSiteResources,
+        }, async (result) => {
+            let data = result[0].result;
+            let currentUrl = await getCurrentUrl();
+            data.push(currentUrl.toString());
+            let urls = data.map(url => url.split(/[#?]/)[0]);
+            urls = new Set(urls);
+            urls = [...urls.values()].filter(Boolean);
+            console.log(urls)
+            for (let url of urls) {
+                let temp = await getCookies(url);
+                cookies.push(...temp);
+            }
+            ;
+            cookies = [...cookies].filter(Boolean);
+            uniqueCookies = cookies.reduce((prev, cur) => {
+                if (!prev.find(cookie => cookie.value == cur.value && cookie.name == cur.name && cookie.domain == cur.domain)) {
+                    prev.push(cur);
+                }
+                ;
+                return prev;
+            }, []);
+            console.log(uniqueCookies);
+            port.postMessage({sender: "popup", content: uniqueCookies});
+            console.log("Popup: Cookies sent.");
+
+            for (let uniqueCookie of uniqueCookies) {
+                if (uniqueCookie.domain.replace("www", "") != currentUrl.hostname.replace("www", "")) {
+                    thirdPartiesCookiesNum += 1;
+                }
+            }
+            setPrompt(uniqueCookies.length + " cookies Found.");
+            resultLabel.textContent = "----";
+            domainLabel.textContent = "Domain: " + currentUrl.hostname;
+            cookiesFoundLabel.textContent = "Stored Cookies: " + uniqueCookies.length;
+            thirdPartyCookiesLabel.textContent = "Third Parties Cookies: " + thirdPartiesCookiesNum;
+            maliciousCookiesLabel.textContent = "Malicious Cookies: Analysing...";
+        });
+    }
+}
