@@ -1,8 +1,10 @@
 import os
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "cookies_analyser.settings")
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')
 
 import django
+
 django.setup()
 
 import sqlite3
@@ -18,9 +20,10 @@ alphabet = "0123456789abcdefghijklmnopqrstuvwxyz()<>{}[]+-/=~`!@#$%^&*,;.?:_|\"'
 
 
 def classify():
-    preprocess()
     classifier = load_model('model.h5')
     data, cookie_ids = preprocess()
+    if data.size == 0:
+        return
     predictions = classifier.predict(data, batch_size=128, verbose=2)
     count = 0
     for prediction in predictions:

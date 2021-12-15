@@ -1,6 +1,7 @@
 const activateButton = document.getElementById("activateButton");
 const getCookiesButton = document.getElementById("getCookiesButton");
 const reportButton = document.getElementById("ReportButton");
+const deleteCookiesButton = document.getElementById("deleteCookiesButton");
 const prompt = document.getElementById("prompt");
 const domainLabel = document.getElementById("domain");
 const resultLabel = document.getElementById("result");
@@ -32,7 +33,15 @@ activateButton.addEventListener("click", function() {
 getCookiesButton.addEventListener("click", async function() {
     if (isRunning) {
         const cookies = await getCookies();
-        port.postMessage({sender: "popup", content: cookies});
+        port.postMessage({sender: "popup", sources: "all_sites", content: cookies, url: '', domain: ''});
+        resultLabel.style.color = "#000000";
+        resultLabel.style.fontSize = "28px";
+        resultLabel.textContent = "Scanning Results";
+        domainLabel.textContent = "Domain: All sites visited";
+        cookiesFoundLabel.textContent = "Stored Cookies: " + cookies.length;
+        thirdPartyCookiesLabel.textContent = "Third Parties Cookies: --";
+        maliciousCookiesLabel.textContent = "Malicious Cookies: Analysing...";
+
         console.log("Cookies sent.");
     } else {
         setPrompt("Not activated!")
@@ -41,24 +50,35 @@ getCookiesButton.addEventListener("click", async function() {
 
 reportButton.addEventListener("click", async function() {
     if (isRunning) {
-        setPrompt("ok");
+        port.postMessage({sender: "popup", sources: "report"});
     } else {
         setPrompt("Not activated!");
     }
 })
 
-port.onMessage.addListener(function(msg) {
+deleteCookiesButton.addEventListener("click", async function() {
+    if (isRunning) {
+        getSiteCookies("delete");
+    } else {
+        setPrompt("Not activated!");
+    }
+})
+
+port.onMessage.addListener(async function(msg) {
     if (msg.sender == "background") {
-        if (msg.content == 0) {
-            resultLabel.style.color = "#4CAF50";
-            resultLabel.textContent = "Safe";
-        } else {
-            resultLabel.style.color = "#DC0000";
-            resultLabel.textContent = "Unsafe";
+        console.log("Popup received: " + msg.sources);
+        if (msg.sources == "current_site") {
+            if (msg.content == 0) {
+                resultLabel.style.color = "#4CAF50";
+                resultLabel.textContent = "Safe";
+            } else {
+                resultLabel.style.color = "#DC0000";
+                resultLabel.textContent = "Unsafe";
+            }
         }
         maliciousCookiesLabel.textContent = "Malicious Cookies: " + msg.content;
-        console.log("Popup: Message received.");
     }
+    console.log("Popup received: " + msg);
 })
 
 function getSiteResources() {
@@ -125,11 +145,11 @@ async function init() {
             setButton("#4CAF50", "Activate");
         }
         resetPanel();
-        getSiteCookies();
+        getSiteCookies("get");
     });
 }
 
-async function resetPanel() {
+function resetPanel() {
     if (!isRunning) {
         resultLabel.style.color = "#000000";
         resultLabel.textContent = "----";
@@ -140,12 +160,12 @@ async function resetPanel() {
     }
 }
 
-async function getSiteCookies() {
+async function getSiteCookies(command) {
+    let urls;
+    let cookies = new Array();
+    let uniqueCookies = new Array();
     if (isRunning) {
         let [tab] = await chrome.tabs.query({active: true, currentWindow: true});
-        let cookies = new Array();
-        let uniqueCookies = new Array();
-        let thirdPartiesCookiesNum = 0;
 
         await chrome.scripting.executeScript({
             target: {tabId: tab.id},
@@ -154,13 +174,23 @@ async function getSiteCookies() {
             let data = result[0].result;
             let currentUrl = await getCurrentUrl();
             data.push(currentUrl.toString());
-            let urls = data.map(url => url.split(/[#?]/)[0]);
+            urls = data.map(url => url.split(/[#?]/)[0]);
             urls = new Set(urls);
             urls = [...urls.values()].filter(Boolean);
-            console.log(urls)
+
             for (let url of urls) {
                 let temp = await getCookies(url);
-                cookies.push(...temp);
+                if (command == "delete") {
+                    for (let cookie of temp) {
+                        await chrome.cookies.remove({
+                            "url": url,
+                            "name": cookie.name,
+                            "storeId": cookie.storeId,
+                        });
+                    }
+                } else if (command == "get") {
+                    cookies.push(...temp);
+                }
             }
             ;
             cookies = [...cookies].filter(Boolean);
@@ -172,20 +202,27 @@ async function getSiteCookies() {
                 return prev;
             }, []);
             console.log(uniqueCookies);
-            port.postMessage({sender: "popup", content: uniqueCookies});
+            port.postMessage({sender: "popup", sources: "current_site", content: uniqueCookies, url: currentUrl, domain: currentUrl.hostname.replace("www", "")});
             console.log("Popup: Cookies sent.");
-
-            for (let uniqueCookie of uniqueCookies) {
-                if (uniqueCookie.domain.replace("www", "") != currentUrl.hostname.replace("www", "")) {
-                    thirdPartiesCookiesNum += 1;
-                }
-            }
             setPrompt(uniqueCookies.length + " cookies Found.");
+
             resultLabel.textContent = "----";
             domainLabel.textContent = "Domain: " + currentUrl.hostname;
             cookiesFoundLabel.textContent = "Stored Cookies: " + uniqueCookies.length;
-            thirdPartyCookiesLabel.textContent = "Third Parties Cookies: " + thirdPartiesCookiesNum;
+            thirdPartyCookiesLabel.textContent = "Third Parties Cookies: " + await classifyCookies(uniqueCookies, currentUrl);;
             maliciousCookiesLabel.textContent = "Malicious Cookies: Analysing...";
         });
     }
+}
+
+async function classifyCookies(cookies, currentUrl) {
+    let thirdPartiesCookiesNum = 0;
+
+    for (let cookie of cookies) {
+        if (!cookie.domain.replace("www", "").match(currentUrl.hostname.replace("www", ""))) {
+            thirdPartiesCookiesNum += 1;
+        }
+    };
+
+    return thirdPartiesCookiesNum
 }

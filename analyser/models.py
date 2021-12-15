@@ -4,6 +4,8 @@ from django.db import models
 class CookiesList(models.Model):
     owner = models.CharField(max_length=128)
     cookies = models.JSONField(null=True)
+    domain = models.URLField(null=True)
+    url = models.URLField(null=True)
 
 
 class Cookie(models.Model):
@@ -33,5 +35,6 @@ class Temp(models.Model):
     session = models.BooleanField(null=True)
     storeId = models.IntegerField(default=0)
     value = models.CharField(max_length=4096, null=True)
-    isMalicious = models.IntegerField(default=0)
+    isMalicious = models.IntegerField(default=-1)
+    isThirdPartyCookie = models.IntegerField(default=-1)
 

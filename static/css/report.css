@@ -1,0 +1,49 @@
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+td,th {
+    padding: 0;
+}
+
+.cookies-list {
+    border-collapse: collapse;
+    border-spacing: 0;
+    empty-cells: show;
+    border: 1px solid #cbcbcb;
+}
+
+.cookies-list caption {
+    color: #000;
+    font: italic 85%/1 arial,sans-serif;
+    padding: 1em 0;
+}
+
+.cookies-list td,.cookies-list th {
+    border-left: 1px solid #cbcbcb;
+    border-width: 0 0 0 1px;
+    font-size: inherit;
+    margin: 0;
+    overflow: visible;
+    padding: .5em 1em;
+}
+
+.cookies-list thead {
+    background-color: #e0e0e0;
+    color: #000;
+    text-align: left;
+    vertical-align: bottom;
+}
+
+.cookies-list td {
+    background-color: transparent;
+}
+
+.cookies-list-bordered td {
+    border-bottom: 1px solid #cbcbcb;
+}
+
+.cookies-list-bordered tbody>tr:last-child>td {
+    border-bottom-width: 0;
+}

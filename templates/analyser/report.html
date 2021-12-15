@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+{% load static %}
+
+<html>
+    <head>
+        <link rel="stylesheet" href="{% static "css/report.css" %}">
+        <title>Details of cookies</title>
+    </head>
+
+    <body>
+        <div>
+            <h1>Report for web page:</h1>
+            <label>{{ url }}</label>
+        </div>
+
+        <div>
+        <h2>Malicious Cookies: {{ malicious_cookies|length }}</h2>
+        {% if malicious_cookies %}
+        <table class="cookies-list cookies-list-bordered">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Domain</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for cookie in malicious_cookies %}
+                <tr>
+                    <td>{{ cookie.name }}</td>
+                    <td>{{ cookie.domain }}</td>
+                    <td>{{ cookie.value }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        <br>
+        </div>
+
+        <div>
+        <h2>Third-Party Cookies: {{ third_party_cookies|length }}</h2>
+        {% if third_party_cookies %}
+        <table class="cookies-list cookies-list-bordered">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Domain</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for cookie in third_party_cookies %}
+                <tr>
+                    <td >{{ cookie.name }}</td>
+                    <td>{{ cookie.domain }}</td>
+                    <td>{{ cookie.value }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        <br>
+        </div>
+
+        <div>
+        <h2>Session Cookies: {{ session_cookies|length }}</h2>
+        {% if session_cookies %}
+        <table class="cookies-list cookies-list-bordered">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Domain</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for cookie in session_cookies %}
+                <tr>
+                    <td>{{ cookie.name }}</td>
+                    <td>{{ cookie.domain }}</td>
+                    <td>{{ cookie.value }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        <br>
+        </div>
+
+        <div>
+        <h2>Stored Cookies: {{ stored_cookies|length }}</h2>
+        {% if stored_cookies %}
+        <table class="cookies-list cookies-list-bordered">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Domain</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for cookie in stored_cookies %}
+                <tr>
+                    <td>{{ cookie.name }}</td>
+                    <td>{{ cookie.domain }}</td>
+                    <td>{{ cookie.value }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        <br>
+        </div>
+    </body>
+</html>
