@@ -68,10 +68,10 @@ port.onMessage.addListener(async function(msg) {
     if (msg.sender == "background") {
         console.log("Popup received: " + msg.sources);
         if (msg.sources == "current_site") {
-            if (msg.content == 0) {
+            if (msg.content == 0 && resultLabel.textContent == "----") {
                 resultLabel.style.color = "#4CAF50";
                 resultLabel.textContent = "Safe";
-            } else {
+            } else if (msg.content > 0) {
                 resultLabel.style.color = "#DC0000";
                 resultLabel.textContent = "Unsafe";
             }
@@ -162,6 +162,7 @@ function resetPanel() {
 
 async function getSiteCookies(command) {
     let urls;
+    let thirdPartyCookies = 0;
     let cookies = new Array();
     let uniqueCookies = new Array();
     if (isRunning) {
@@ -206,10 +207,17 @@ async function getSiteCookies(command) {
             console.log("Popup: Cookies sent.");
             setPrompt(uniqueCookies.length + " cookies Found.");
 
-            resultLabel.textContent = "----";
+            thirdPartyCookies = await classifyCookies(uniqueCookies, currentUrl);
+            if (thirdPartyCookies > 0) {
+                resultLabel.style.color = "#FF8900";
+                resultLabel.textContent = "Suspicious";
+            } else {
+                resultLabel.style.color = "#000000";
+                resultLabel.textContent = "----";
+            }
             domainLabel.textContent = "Domain: " + currentUrl.hostname;
             cookiesFoundLabel.textContent = "Stored Cookies: " + uniqueCookies.length;
-            thirdPartyCookiesLabel.textContent = "Third Parties Cookies: " + await classifyCookies(uniqueCookies, currentUrl);;
+            thirdPartyCookiesLabel.textContent = "Third Parties Cookies: " + thirdPartyCookies;
             maliciousCookiesLabel.textContent = "Malicious Cookies: Analysing...";
         });
     }
